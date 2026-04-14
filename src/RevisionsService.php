@@ -18,11 +18,13 @@ use Kirby\Toolkit\Str;
  */
 class RevisionsService
 {
+	// Location of Kirby's draft working copy for a model.
 	public static function changesPath(ModelWithContent $model): string
 	{
 		return $model->root() . '/_changes';
 	}
 
+	// Location where revision snapshots are stored.
 	public static function versionsPath(ModelWithContent $model): string
 	{
 		return $model->root() . '/_versions';
@@ -183,6 +185,7 @@ class RevisionsService
 		$changes = static::changesPath($model);
 		Dir::make($changes);
 
+		// Replace current draft files with files from the chosen snapshot.
 		foreach (Dir::read($changes) as $name) {
 			$file = $changes . '/' . $name;
 
@@ -243,6 +246,7 @@ class RevisionsService
 
 		$root = static::versionsPath($model);
 
+		// List is newest-first; sliced tail contains the oldest revisions.
 		foreach (array_slice($list, $max) as $row) {
 			Dir::remove($root . '/' . $row['id']);
 		}

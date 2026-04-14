@@ -27,6 +27,7 @@
 	min-width: 0;
 	font-size: var(--text-sm);
 	line-height: var(--leading-normal);
+	/* Keep long timestamps/page labels from forcing row overflow. */
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;

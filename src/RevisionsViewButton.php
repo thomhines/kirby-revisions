@@ -10,6 +10,7 @@ class RevisionsViewButton extends ViewButton
 {
 	public function __construct(ModelWithContent $model)
 	{
+		// Opens the drawer route registered in index.php areas.site.drawers.
 		parent::__construct(
 			class: 'k-revisions-view-button',
 			component: 'k-view-button',

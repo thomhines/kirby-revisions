@@ -45,6 +45,7 @@ function thomhines_kirby_revisions_apply_view_buttons(App $kirby): void
 		return;
 	}
 
+	// Fallbacks when a project doesn't define panel.viewButtons.
 	$pageDefault = ['open', 'preview', '-', 'settings', 'languages', 'status'];
 	$siteDefault = ['open', 'preview', 'languages'];
 
@@ -92,6 +93,7 @@ function thomhines_kirby_revisions_apply_view_buttons(App $kirby): void
 
 	$optProp->setValue($kirby, $options);
 
+	// Keep extensions.options in sync with the reflected runtime options.
 	$extProp = $ref->getProperty('extensions');
 	$extProp->setAccessible(true);
 	$extensions = $extProp->getValue($kirby);
@@ -135,6 +137,7 @@ Kirby::plugin('thomhines/kirby-revisions', [
 				return $result;
 			}
 
+			// Guard flag used by drawer-triggered "Save revision" to avoid duplicate snapshots.
 			$hNoSnap = $kirby->request()->header('X-Revisions-No-Snapshot');
 
 			if ($hNoSnap === '1' || strtolower((string)$hNoSnap) === 'true') {
@@ -159,6 +162,7 @@ Kirby::plugin('thomhines/kirby-revisions', [
 				return $result;
 			}
 
+			// Only create revisions when JS marks the publish request explicitly.
 			$h = $kirby->request()->header('X-Revisions-Snapshot');
 
 			if ($h !== '1' && strtolower((string)$h) !== 'true') {
@@ -168,6 +172,7 @@ Kirby::plugin('thomhines/kirby-revisions', [
 			$base = Str::before($inner, '/changes/publish');
 
 			try {
+				// Publish snapshots copy current model files (not _changes) to support publish-only flow.
 				if (Str::startsWith($base, 'pages/') === true) {
 					// Match Find::page(): API uses + or space for nested ids (e.g. essays+my-essay).
 					$pageId = str_replace(

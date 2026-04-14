@@ -1,20 +1,4 @@
-const REVISIONS_DEBUG = true;
-
-function revisionsDebug(label, payload = {}) {
-	if (REVISIONS_DEBUG !== true) {
-		return;
-	}
-
-	const message = `[kirby-revisions] ${label}`;
-
-	if (typeof cl === "function") {
-		cl(message, payload);
-		return;
-	}
-
-	console.log(message, payload);
-}
-
+// Match publish API calls (manual Save/Publish flow).
 function revisionsIsChangesPublishPath(path) {
 	if (typeof path !== "string") {
 		return false;
@@ -33,27 +17,18 @@ function revisionsInstallApiPostPatch(panel) {
 	}
 
 	api.__revisionsPostPatched = true;
-	revisionsDebug("api.post patch installed");
 
 	if (panel.__revisionsSnapshotSuppress !== true) {
 		panel.__revisionsSnapshotSuppress = false;
 	}
 	const origPost = api.post.bind(api);
 
+	// Attach revision headers only to publish calls so autosave is ignored.
 	api.post = async (path, data, options, method, silent) => {
 		let opts = options;
 		const isPublishPath = revisionsIsChangesPublishPath(path) === true;
 		const isChangesPublish = isPublishPath === true;
 		let headerDecision = "none";
-
-		revisionsDebug("api.post called", {
-			path,
-			method,
-			silent,
-			isPublishPath,
-			isChangesPublish,
-			suppress: panel.__revisionsSnapshotSuppress === true,
-		});
 
 		if (isChangesPublish === true) {
 			const nextHeaders = { ...(options?.headers ?? {}) };
@@ -79,33 +54,18 @@ function revisionsInstallApiPostPatch(panel) {
 			) {
 				opts = { ...(options ?? {}), headers: nextHeaders };
 			}
-
-			revisionsDebug("header decision", {
-				path,
-				headerDecision,
-				headers: opts?.headers ?? nextHeaders,
-			});
 		}
 
-		const response = await origPost(path, data, opts, method, silent);
-		revisionsDebug("api.post response", {
-			path,
-			status: response?.status,
-		});
-
-		return response;
+		return await origPost(path, data, opts, method, silent);
 	};
 }
 
 window.panel.plugin("thomhines/kirby-revisions", {
 	created(vm) {
 		const panel = vm.$panel;
-		revisionsDebug("plugin created");
 
 		if (typeof panel?.api?.post === "function") {
 			revisionsInstallApiPostPatch(panel);
-		} else {
-			revisionsDebug("panel.api.post missing");
 		}
 
 	},
@@ -153,6 +113,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 				},
 			},
 			methods: {
+				// Re-fetch from API after mutations so the drawer list stays in sync.
 				async refreshRevisionsList() {
 					if (typeof this.apiUrl !== "string" || this.apiUrl === "") {
 						return;
@@ -190,6 +151,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 					this.savingRevision = true;
 
 					try {
+						// Persist pending form changes first, but prevent the publish hook snapshot.
 						if (typeof panel?.content?.save === "function") {
 							panel.__revisionsSnapshotSuppress = true;
 
@@ -267,6 +229,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 					});
 				},
 				async deleteRevision(id) {
+					// Uses fetch directly because Kirby's panel API helper does not expose DELETE with csrf.
 					const url =
 						this.apiUrl + "/" + encodeURIComponent(id);
 
