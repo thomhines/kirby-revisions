@@ -3,7 +3,7 @@
 	"description": "Kirby Panel draft revision snapshots with load and retention controls",
 	"homepage": "https://github.com/thomhines/kirby-revisions",
 	"type": "kirby-plugin",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"license": "MIT",
 	"keywords": [
 		"kirby",
