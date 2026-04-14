@@ -70,6 +70,53 @@ class RevisionsService
 	}
 
 	/**
+	 * Copy current model files from the model root into `_versions/{id}`.
+	 * Used for publish-triggered revisions, where `_changes` may already be gone.
+	 */
+	public static function snapshotCurrent(ModelWithContent $model): string|null
+	{
+		$root = $model->root();
+
+		if (Dir::exists($root) !== true) {
+			return null;
+		}
+
+		$id     = static::newRevisionId();
+		$target = static::versionsPath($model) . '/' . $id;
+
+		if (Dir::make($target) !== true) {
+			return null;
+		}
+
+		$copied = false;
+
+		foreach (Dir::read($root) as $name) {
+			$src = $root . '/' . $name;
+
+			if (is_file($src) !== true) {
+				continue;
+			}
+
+			// Skip internal helper files/directories like _versions metadata files.
+			if (Str::startsWith($name, '_') === true) {
+				continue;
+			}
+
+			F::copy($src, $target . '/' . $name);
+			$copied = true;
+		}
+
+		if ($copied !== true) {
+			Dir::remove($target);
+			return null;
+		}
+
+		static::prune($model);
+
+		return $id;
+	}
+
+	/**
 	 * @return array<int, array{id: string, label: string, mtime: int}>
 	 */
 	public static function list(ModelWithContent $model): array

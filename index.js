@@ -1,64 +1,28 @@
-/**
- * Kirby’s editor mostly persists drafts through throttled autosave, not through
- * the public content.save() entry point. If this is false, revisions are only
- * created when something calls content.save / content.update (e.g. some field
- * uploads). Set false to only snapshot on those explicit saves (rare while
- * editing body text in the default Panel). The default true snapshots after
- * each autosave idle (trailing edge of the 1s throttle), not on every keystroke.
- */
-const REVISIONS_TRAILING_SNAPSHOTS = true;
+const REVISIONS_DEBUG = true;
 
-/**
- * Kirby-compatible throttle, but the callback receives a leading boolean:
- * `true` when invoked from the trailing timer, `false` when from the leading call.
- * Used to send a revision snapshot header only after autosave idle (trailing),
- * not on the first keystroke (leading).
- */
-function revisionsThrottle(callback, delay, options = {}) {
-	options = { leading: true, trailing: false, ...options };
-	let timer = null;
-	let last = null;
-	let trailingArgs = null;
-
-	function throttled(...args) {
-		if (timer) {
-			last = this;
-			trailingArgs = args;
-			return;
-		}
-
-		if (options.leading) {
-			callback.call(this, false, ...args);
-		} else {
-			last = this;
-			trailingArgs = args;
-		}
-
-		const cooled = () => {
-			if (options.trailing && trailingArgs) {
-				callback.call(last, true, ...trailingArgs);
-
-				last = null;
-				trailingArgs = null;
-				timer = setTimeout(cooled, delay);
-			} else {
-				timer = null;
-			}
-		};
-
-		timer = setTimeout(cooled, delay);
+function revisionsDebug(label, payload = {}) {
+	if (REVISIONS_DEBUG !== true) {
+		return;
 	}
 
-	throttled.cancel = () => {
-		if (timer) {
-			clearTimeout(timer);
-			timer = null;
-			last = null;
-			trailingArgs = null;
-		}
-	};
+	const message = `[kirby-revisions] ${label}`;
 
-	return throttled;
+	if (typeof cl === "function") {
+		cl(message, payload);
+		return;
+	}
+
+	console.log(message, payload);
+}
+
+function revisionsIsChangesPublishPath(path) {
+	if (typeof path !== "string") {
+		return false;
+	}
+
+	const normalized = path.split("#")[0];
+
+	return /\/changes\/publish(?:$|\?)/.test(normalized);
 }
 
 function revisionsInstallApiPostPatch(panel) {
@@ -69,23 +33,44 @@ function revisionsInstallApiPostPatch(panel) {
 	}
 
 	api.__revisionsPostPatched = true;
+	revisionsDebug("api.post patch installed");
 
 	if (panel.__revisionsSnapshotSuppress !== true) {
 		panel.__revisionsSnapshotSuppress = false;
 	}
-
 	const origPost = api.post.bind(api);
 
 	api.post = async (path, data, options, method, silent) => {
 		let opts = options;
+		const isPublishPath = revisionsIsChangesPublishPath(path) === true;
+		const isChangesPublish = isPublishPath === true;
+		let headerDecision = "none";
 
-		if (typeof path === "string" && path.endsWith("/changes/save") === true) {
+		revisionsDebug("api.post called", {
+			path,
+			method,
+			silent,
+			isPublishPath,
+			isChangesPublish,
+			suppress: panel.__revisionsSnapshotSuppress === true,
+		});
+
+		if (isChangesPublish === true) {
 			const nextHeaders = { ...(options?.headers ?? {}) };
 
+			// Revisions are tied only to explicit publish requests.
 			if (panel.__revisionsSnapshotSuppress === true) {
 				nextHeaders["X-Revisions-No-Snapshot"] = "1";
-			} else if (panel.__revisionsSnapshotRequest === true) {
+				delete nextHeaders["X-Revisions-Snapshot"];
+				headerDecision = "no-snapshot (suppressed)";
+			} else if (isPublishPath === true) {
 				nextHeaders["X-Revisions-Snapshot"] = "1";
+				delete nextHeaders["X-Revisions-No-Snapshot"];
+				headerDecision = "snapshot";
+			} else {
+				nextHeaders["X-Revisions-No-Snapshot"] = "1";
+				delete nextHeaders["X-Revisions-Snapshot"];
+				headerDecision = "no-snapshot (silent/autosave)";
 			}
 
 			if (
@@ -94,67 +79,35 @@ function revisionsInstallApiPostPatch(panel) {
 			) {
 				opts = { ...(options ?? {}), headers: nextHeaders };
 			}
+
+			revisionsDebug("header decision", {
+				path,
+				headerDecision,
+				headers: opts?.headers ?? nextHeaders,
+			});
 		}
 
-		return origPost(path, data, opts, method, silent);
-	};
-}
+		const response = await origPost(path, data, opts, method, silent);
+		revisionsDebug("api.post response", {
+			path,
+			status: response?.status,
+		});
 
-function revisionsInstallContentSavePatch(panel) {
-	const content = panel.content;
-
-	if (content.__revisionsContentPatched === true) {
-		return;
-	}
-
-	content.__revisionsContentPatched = true;
-
-	const coreSave = content.save.bind(content);
-	const trailingSnapshots = REVISIONS_TRAILING_SNAPSHOTS === true;
-
-	if (typeof content.saveLazy?.cancel === "function") {
-		content.saveLazy.cancel();
-	}
-
-	const autosaveSave = async (isTrailing, values, env) => {
-		if (isTrailing === true && trailingSnapshots === true) {
-			panel.__revisionsSnapshotRequest = true;
-		}
-
-		try {
-			return await coreSave(values, env);
-		} finally {
-			panel.__revisionsSnapshotRequest = false;
-		}
-	};
-
-	content.saveLazy = revisionsThrottle(autosaveSave, 1000, {
-		leading: true,
-		trailing: true,
-		timer: content.timer,
-	});
-
-	content.save = async (values = {}, env = {}) => {
-		panel.__revisionsSnapshotRequest = true;
-		try {
-			return await coreSave(values, env);
-		} finally {
-			panel.__revisionsSnapshotRequest = false;
-		}
+		return response;
 	};
 }
 
 window.panel.plugin("thomhines/kirby-revisions", {
 	created(vm) {
 		const panel = vm.$panel;
+		revisionsDebug("plugin created");
 
 		if (typeof panel?.api?.post === "function") {
 			revisionsInstallApiPostPatch(panel);
+		} else {
+			revisionsDebug("panel.api.post missing");
 		}
 
-		if (typeof panel?.content?.save === "function") {
-			revisionsInstallContentSavePatch(panel);
-		}
 	},
 	components: {
 		"k-revisions-drawer": {
@@ -447,7 +400,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 							theme="help"
 						>
 							<p>No revisions yet</p>
-							<p>Edit the page and wait for a save or autosave to see the first entry.</p>
+							<p>Edit the page and click Save to see the first entry.</p>
 						</k-text>
 						<div
 							v-else

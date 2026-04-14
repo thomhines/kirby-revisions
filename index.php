@@ -127,7 +127,7 @@ Kirby::plugin('thomhines/kirby-revisions', [
 
 			$inner = thomhines_kirby_revisions_api_inner_path($kirby, $path);
 
-			if (Str::endsWith($inner, '/changes/save') !== true) {
+			if (Str::endsWith($inner, '/changes/publish') !== true) {
 				return $result;
 			}
 
@@ -165,7 +165,7 @@ Kirby::plugin('thomhines/kirby-revisions', [
 				return $result;
 			}
 
-			$base = Str::before($inner, '/changes/save');
+			$base = Str::before($inner, '/changes/publish');
 
 			try {
 				if (Str::startsWith($base, 'pages/') === true) {
@@ -178,10 +178,10 @@ Kirby::plugin('thomhines/kirby-revisions', [
 					$page = $kirby->page($pageId);
 
 					if ($page !== null) {
-						RevisionsService::snapshot($page);
+						RevisionsService::snapshotCurrent($page);
 					}
 				} elseif ($base === 'site') {
-					RevisionsService::snapshot($kirby->site());
+					RevisionsService::snapshotCurrent($kirby->site());
 				}
 			} catch (\Throwable $e) {
 				// never break the save response
@@ -486,6 +486,6 @@ function thomhines_kirby_revisions_api_inner_path(App $kirby, mixed $path): stri
 	return $path;
 }
 
-// thomhines/kirby-revisions: after Panel POST …/changes/save (with X-Revisions-Snapshot), copies _changes into _versions/{id}.
+// thomhines/kirby-revisions: after Panel POST …/changes/publish (with X-Revisions-Snapshot), copies current model files into _versions/{id}.
 // Toolbar: system.loadPlugins:after merges panel.viewButtons (page + site).
 // Options: thomhines.kirby-revisions.enabled, .max, .allowDelete (Panel index.js sets the snapshot header; allowDelete enables per-revision delete in the drawer).
