@@ -22,6 +22,11 @@
 	border-block-end: 0;
 }
 
+.k-revisions-drawer .k-revisions-table-row:nth-child(even) {
+	/* Subtle zebra striping for easier row scanning. */
+	background: var(--color-gray-200);
+}
+
 .k-revisions-drawer .k-revisions-table-row-label {
 	flex: 1;
 	min-width: 0;
