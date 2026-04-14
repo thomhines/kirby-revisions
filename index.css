@@ -1,0 +1,44 @@
+/* Revisions drawer: table-like rows (mirrors Panel .k-table tokens where possible) */
+
+.k-revisions-drawer .k-revisions-table {
+	position: relative;
+	background: var(--table-color-back, var(--color-white));
+	box-shadow: var(--shadow);
+	border-radius: var(--rounded);
+	overflow: hidden;
+}
+
+.k-revisions-drawer .k-revisions-table-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-4);
+	min-height: var(--table-row-height, var(--height-md));
+	padding-inline: var(--table-cell-padding, var(--spacing-3));
+	border-block-end: 1px solid var(--table-color-border, var(--color-gray-300));
+}
+
+.k-revisions-drawer .k-revisions-table-row:last-child {
+	border-block-end: 0;
+}
+
+.k-revisions-drawer .k-revisions-table-row-label {
+	flex: 1;
+	min-width: 0;
+	font-size: var(--text-sm);
+	line-height: var(--leading-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.k-revisions-drawer .k-revisions-table-row-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-2);
+	flex-shrink: 0;
+}
+
+.k-revisions-drawer .k-revisions-table-row-actions .k-button {
+	flex-shrink: 0;
+}

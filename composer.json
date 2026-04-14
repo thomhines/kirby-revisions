@@ -1,0 +1,37 @@
+{
+	"name": "thomhines/kirby-revisions",
+	"description": "Kirby Panel draft revision snapshots with load and retention controls",
+	"homepage": "https://github.com/thomhines/kirby-revisions",
+	"type": "kirby-plugin",
+	"version": "0.1.0",
+	"license": "MIT",
+	"keywords": [
+		"kirby",
+		"kirby5",
+		"panel",
+		"revisions"
+	],
+	"authors": [
+		{
+			"name": "Thom Hines"
+		}
+	],
+	"require": {
+		"getkirby/composer-installer": "^1.1"
+	},
+	"require-dev": {
+		"getkirby/cms": "^5.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"Thomhines\\KirbyRevisions\\": "src/"
+		}
+	},
+	"support": {
+		"docs": "https://github.com/thomhines/kirby-revisions/blob/main/README.md",
+		"source": "https://github.com/thomhines/kirby-revisions"
+	},
+	"extra": {
+		"installer-name": "kirby-revisions"
+	}
+}
