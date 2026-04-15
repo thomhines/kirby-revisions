@@ -240,7 +240,7 @@ class RevisionsService
 		$tz = new DateTimeZone(date_default_timezone_get());
 		$dt = (new DateTimeImmutable('@' . $timestamp))->setTimezone($tz);
 
-		return $dt->format('M j, Y, g:i A');
+		return $dt->format('D, M j, Y \a\t g:ia');
 	}
 
 	public static function load(ModelWithContent $model, string $revisionId): void
