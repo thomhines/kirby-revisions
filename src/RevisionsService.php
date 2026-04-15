@@ -119,7 +119,7 @@ class RevisionsService
 	}
 
 	/**
-	 * @return array<int, array{id: string, label: string, mtime: int}>
+	 * @return array<int, array{id: string, label: string, name: string, mtime: int}>
 	 */
 	public static function list(ModelWithContent $model): array
 	{
@@ -143,9 +143,11 @@ class RevisionsService
 			}
 
 			$mtime = filemtime($dir) ?: 0;
+			$revisionName = static::revisionName($dir);
 			$items[] = [
-				'id'    => $name,
+				'id'	=> $name,
 				'label' => static::formatRevisionLabel($mtime),
+				'name'	=> $revisionName,
 				'mtime' => $mtime,
 			];
 		}
@@ -167,7 +169,7 @@ class RevisionsService
 		$tz = new DateTimeZone(date_default_timezone_get());
 		$dt = (new DateTimeImmutable('@' . $timestamp))->setTimezone($tz);
 
-		return $dt->format('M j, Y — g:i A');
+		return $dt->format('M j, Y, g:i A');
 	}
 
 	public static function load(ModelWithContent $model, string $revisionId): void
@@ -201,6 +203,11 @@ class RevisionsService
 				continue;
 			}
 
+			// Skip revision metadata files that are not model content.
+			if ($name === '.revision.json') {
+				continue;
+			}
+
 			F::copy($from, $changes . '/' . $name);
 		}
 
@@ -225,9 +232,61 @@ class RevisionsService
 		Dir::remove($dir);
 	}
 
+	/**
+	 * Set or clear a user-defined label for a revision.
+	 */
+	public static function rename(ModelWithContent $model, string $revisionId, string|null $name): void
+	{
+		if (static::isValidRevisionId($revisionId) !== true) {
+			throw new NotFoundException(message: 'Invalid revision id');
+		}
+
+		$dir = static::versionsPath($model) . '/' . $revisionId;
+
+		if (Dir::exists($dir) !== true) {
+			throw new NotFoundException(message: 'Revision not found');
+		}
+
+		$normalized = trim((string)$name);
+		$normalized = preg_replace('/\s+/u', ' ', $normalized) ?? '';
+
+		if ($normalized === '') {
+			F::remove($dir . '/.revision.json');
+			return;
+		}
+
+		F::write(
+			$dir . '/.revision.json',
+			json_encode(
+				[
+					'name' => Str::substr($normalized, 0, 120),
+				],
+				JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+			) ?: '{}'
+		);
+	}
+
 	public static function isValidRevisionId(string $id): bool
 	{
 		return (bool)preg_match('/^\d{4}-\d{2}-\d{2}T\d{6}Z-[a-z0-9]{6}$/', $id);
+	}
+
+	protected static function revisionName(string $revisionDir): string
+	{
+		$json = F::read($revisionDir . '/.revision.json');
+
+		if (is_string($json) !== true || $json === '') {
+			return '';
+		}
+
+		$data = json_decode($json, true);
+		$name = is_array($data) === true ? ($data['name'] ?? '') : '';
+
+		if (is_string($name) !== true) {
+			return '';
+		}
+
+		return trim($name);
 	}
 
 	protected static function prune(ModelWithContent $model): void

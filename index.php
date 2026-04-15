@@ -287,6 +287,26 @@ Kirby::plugin('thomhines/kirby-revisions', [
 					},
 				],
 				[
+					'pattern' => 'pages/(:any)/revisions/(:any)/rename',
+					'method'  => 'POST',
+					'action'  => function (string $id, string $revisionId) use ($kirby) {
+						$page = Find::page($id);
+
+						if ($page->permissions()->cannot('update') === true) {
+							throw new PermissionException(
+								key: 'version.save.permission',
+							);
+						}
+
+						$name = $kirby->request()->get('name');
+						RevisionsService::rename($page, $revisionId, is_string($name) === true ? $name : null);
+
+						return [
+							'status' => 'ok',
+						];
+					},
+				],
+				[
 					'pattern' => 'site/revisions',
 					'method'  => 'GET',
 					'action'  => function () use ($kirby) {
@@ -368,6 +388,26 @@ Kirby::plugin('thomhines/kirby-revisions', [
 						}
 
 						RevisionsService::delete($site, $revisionId);
+
+						return [
+							'status' => 'ok',
+						];
+					},
+				],
+				[
+					'pattern' => 'site/revisions/(:any)/rename',
+					'method'  => 'POST',
+					'action'  => function (string $revisionId) use ($kirby) {
+						$site = $kirby->site();
+
+						if ($site->permissions()->cannot('update') === true) {
+							throw new PermissionException(
+								key: 'version.save.permission',
+							);
+						}
+
+						$name = $kirby->request()->get('name');
+						RevisionsService::rename($site, $revisionId, is_string($name) === true ? $name : null);
 
 						return [
 							'status' => 'ok',

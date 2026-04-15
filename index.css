@@ -5,7 +5,7 @@
 	background: var(--table-color-back, var(--color-white));
 	box-shadow: var(--shadow);
 	border-radius: var(--rounded);
-	overflow: hidden;
+	overflow: visible;
 }
 
 .k-revisions-drawer .k-revisions-table-row {
@@ -38,7 +38,16 @@
 	white-space: nowrap;
 }
 
+.k-revisions-drawer .k-revisions-table-row-name {
+	font-weight: var(--font-bold);
+}
+
+.k-revisions-drawer .k-revisions-table-row-sep {
+	color: var(--color-gray-600);
+}
+
 .k-revisions-drawer .k-revisions-table-row-actions {
+	position: relative;
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-2);
@@ -47,4 +56,102 @@
 
 .k-revisions-drawer .k-revisions-table-row-actions .k-button {
 	flex-shrink: 0;
+}
+
+.k-revisions-drawer .k-revisions-row-menu-toggle {
+	appearance: none;
+	border: 0;
+	background: transparent;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: var(--height-sm);
+	block-size: var(--height-sm);
+	border-radius: var(--rounded-sm);
+	color: var(--color-gray-700);
+	cursor: pointer;
+}
+
+.k-revisions-drawer .k-revisions-row-menu-toggle:hover {
+	background: var(--color-gray-200);
+	color: var(--color-black);
+}
+
+.k-revisions-drawer .k-revisions-row-menu-dropdown {
+	position: absolute;
+	inset-inline-end: 0;
+	inset-block-start: calc(100% + 0.35rem);
+	display: block;
+	inline-size: max-content;
+	min-inline-size: 8rem;
+	max-inline-size: 14rem;
+	z-index: 20;
+	min-inline-size: 8rem;
+	padding: 0.2rem;
+	background: var(--color-black-900, #111);
+	color: var(--color-white);
+	border-radius: 0.35rem;
+	box-shadow: var(--shadow-lg, var(--shadow));
+}
+
+.k-revisions-drawer .k-revisions-row-menu-dropdown-up {
+	inset-block-start: auto;
+	inset-block-end: calc(100% + 0.35rem);
+}
+
+.k-revisions-drawer .k-revisions-row-menu-item {
+	appearance: none;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	display: block;
+	inline-size: 100%;
+	text-align: left;
+	padding: 0.4rem 0.6rem;
+	font-size: var(--text-sm);
+	line-height: 1.25rem;
+	border-radius: 0.2rem;
+	cursor: pointer;
+}
+
+.k-revisions-drawer .k-revisions-row-menu-item:hover {
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.k-revisions-drawer .k-revisions-row-menu-item-negative {
+	color: #ffd7d7;
+}
+
+.k-revisions-drawer .k-revisions-rename-modal-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-6);
+	background: rgba(0, 0, 0, 0.35);
+}
+
+.k-revisions-drawer .k-revisions-rename-modal {
+	inline-size: min(26rem, 100%);
+	padding: var(--spacing-4);
+	background: var(--color-white);
+	border-radius: var(--rounded);
+	box-shadow: var(--shadow);
+}
+
+.k-revisions-drawer .k-revisions-rename-modal-input {
+	inline-size: 100%;
+	block-size: var(--height-md);
+	padding-inline: var(--spacing-3);
+	border: 1px solid var(--color-gray-300);
+	border-radius: var(--rounded-sm);
+}
+
+.k-revisions-drawer .k-revisions-rename-modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--spacing-2);
+	margin-block-start: var(--spacing-4);
 }
