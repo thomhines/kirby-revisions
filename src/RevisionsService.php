@@ -44,6 +44,7 @@ class RevisionsService
 	public static function snapshot(ModelWithContent $model): string|null
 	{
 		$changes = static::changesPath($model);
+		$contentFilenames = static::contentFilenamesForVersion($model, VersionId::changes());
 
 		if (Dir::exists($changes) !== true || Dir::isEmpty($changes) === true) {
 			return null;
@@ -63,6 +64,20 @@ class RevisionsService
 				continue;
 			}
 
+			// Keep revisions to the model's own content files only.
+			if (
+				(
+					$contentFilenames !== [] &&
+					isset($contentFilenames[$name]) !== true
+				) ||
+				(
+					$contentFilenames === [] &&
+					static::isContentFile($model, $name) !== true
+				)
+			) {
+				continue;
+			}
+
 			F::copy($src, $target . '/' . $name);
 		}
 
@@ -78,6 +93,7 @@ class RevisionsService
 	public static function snapshotCurrent(ModelWithContent $model): string|null
 	{
 		$root = $model->root();
+		$contentFilenames = static::contentFilenamesForVersion($model, VersionId::latest());
 
 		if (Dir::exists($root) !== true) {
 			return null;
@@ -99,8 +115,17 @@ class RevisionsService
 				continue;
 			}
 
-			// Skip internal helper files/directories like _versions metadata files.
-			if (Str::startsWith($name, '_') === true) {
+			// Keep revisions to the model's own content files only.
+			if (
+				(
+					$contentFilenames !== [] &&
+					isset($contentFilenames[$name]) !== true
+				) ||
+				(
+					$contentFilenames === [] &&
+					static::isContentFile($model, $name) !== true
+				)
+			) {
 				continue;
 			}
 
@@ -116,6 +141,51 @@ class RevisionsService
 		static::prune($model);
 
 		return $id;
+	}
+
+	/**
+	 * Returns a lookup map of valid content filenames for the model/version.
+	 *
+	 * @return array<string, true>
+	 */
+	protected static function contentFilenamesForVersion(
+		ModelWithContent $model,
+		VersionId $versionId
+	): array {
+		$storage = $model->storage();
+
+		if (method_exists($storage, 'contentFiles') !== true) {
+			return [];
+		}
+
+		$files = $storage->contentFiles($versionId);
+		$names = [];
+
+		foreach ($files as $file) {
+			$name = basename((string)$file);
+
+			if ($name !== '') {
+				$names[$name] = true;
+			}
+		}
+
+		return $names;
+	}
+
+	protected static function isContentFile(ModelWithContent $model, string $name): bool
+	{
+		if (Str::startsWith($name, '_') === true) {
+			return false;
+		}
+
+		$ext = (string)$model->kirby()->option('content.fileExtension', 'txt');
+		$ext = trim($ext, ". \t\n\r\0\x0B");
+
+		if ($ext === '') {
+			$ext = 'txt';
+		}
+
+		return Str::endsWith(Str::lower($name), '.' . Str::lower($ext));
 	}
 
 	/**
