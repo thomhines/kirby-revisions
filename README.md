@@ -1,6 +1,6 @@
 # Kirby Revisions
 
-Preview, manage, and load previous versions of your pages from the Kirby panel.
+Save, preview, and restore page revisions from the Kirby Panel.
 
 `kirby-revisions` adds a `Revisions` button in the Panel for pages and site settings. Editors can save snapshots, browse older ones, and load a previous snapshot back into the current draft without publishing it live.
 
@@ -12,9 +12,11 @@ Preview, manage, and load previous versions of your pages from the Kirby panel.
 ## What it does
 
 - Adds a `Revisions` drawer in the Panel UI
-- Lets editors save a revision on demand
-- Creates revisions during normal save/autosave flow
+- Lets editors save a revision on demand (with optional label)
+- Creates revisions during publish/save flow
 - Lets editors load an older revision into the current draft
+- Lets editors preview a selected revision in a new browser tab
+- Lets editors add/edit labels for easier revision scanning
 - Optionally allows deleting old revisions
 - Keeps revision history trimmed automatically (based on `max`)
 
@@ -63,7 +65,13 @@ Revisions are stored on disk in each model folder under `_versions`.
 - Pages: `content/<page-id>/_versions/<revision-id>/...`
 - Site settings: `content/_site/_versions/<revision-id>/...` (depends on your site model root)
 
-Each revision contains copies of the draft content files from `_changes`.
+Each revision stores model content files only (for example `page.txt`), not page assets/files.
+
+For manual `Save Revision`, snapshots are created from `_changes` when available and fall back to current saved content when `_changes` does not exist or is empty.
+
+Revision labels are saved in:
+
+- `content/<model>/_versions/<revision-id>/.revision.json`
 
 ## Options
 
@@ -77,6 +85,7 @@ Each revision contains copies of the draft content files from `_changes`.
 
 - Revisions are filesystem snapshots, not git commits.
 - Make sure your content folders (where `_changes`/`_versions` live) are writable by PHP in production.
+- Revision preview opens a dedicated preview tab for the selected snapshot and does not overwrite your current draft.
 
 ## License
 
