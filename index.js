@@ -109,7 +109,28 @@ window.panel.plugin("thomhines/kirby-revisions", {
 					renamingRevision: false,
 					openRowMenuId: "",
 					openRowMenuDirection: "down",
+					revisionsPerPage: 10,
+					currentPage: 1,
 				};
+			},
+			computed: {
+				totalPages() {
+					const total = Math.max(1, Math.ceil(this.localRevisions.length / this.revisionsPerPage));
+
+					return total;
+				},
+				paginatedRevisions() {
+					const page = Math.min(Math.max(1, this.currentPage), this.totalPages);
+					const start = (page - 1) * this.revisionsPerPage;
+
+					return this.localRevisions.slice(start, start + this.revisionsPerPage);
+				},
+				canGoPrevPage() {
+					return this.currentPage > 1;
+				},
+				canGoNextPage() {
+					return this.currentPage < this.totalPages;
+				},
 			},
 			mounted() {
 				document.addEventListener(
@@ -151,10 +172,33 @@ window.panel.plugin("thomhines/kirby-revisions", {
 
 						this.localRevisions = Array.isArray(val) ? [...val] : [];
 						this.hasHydratedRevisions = true;
+						this.currentPage = 1;
+					},
+				},
+				localRevisions: {
+					deep: true,
+					handler() {
+						if (this.currentPage > this.totalPages) {
+							this.currentPage = this.totalPages;
+						}
 					},
 				},
 			},
 			methods: {
+				goToPrevPage() {
+					if (this.canGoPrevPage !== true) {
+						return;
+					}
+
+					this.currentPage -= 1;
+				},
+				goToNextPage() {
+					if (this.canGoNextPage !== true) {
+						return;
+					}
+
+					this.currentPage += 1;
+				},
 				formatRevisionLabelFromTimestamp(timestampMs) {
 					try {
 						return new Intl.DateTimeFormat(undefined, {
@@ -748,7 +792,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 							class="k-revisions-table"
 						>
 							<div
-								v-for="r in localRevisions"
+								v-for="r in paginatedRevisions"
 								:key="r.id"
 								class="k-revisions-table-row"
 							>
@@ -812,6 +856,32 @@ window.panel.plugin("thomhines/kirby-revisions", {
 									</div>
 								</div>
 							</div>
+						</div>
+						<div
+							v-if="localRevisions.length > revisionsPerPage"
+							class="k-revisions-pagination"
+						>
+							<k-button
+								icon="angle-left"
+								size="sm"
+								variant="text"
+								:disabled="canGoPrevPage !== true"
+								@click="goToPrevPage"
+							>
+								
+							</k-button>
+							<k-text class="k-revisions-pagination-label">
+								Page {{ currentPage }} of {{ totalPages }}
+							</k-text>
+							<k-button
+								icon="angle-right"
+								size="sm"
+								variant="text"
+								:disabled="canGoNextPage !== true"
+								@click="goToNextPage"
+							>
+								
+							</k-button>
 						</div>
 					</div>
 				</k-drawer>

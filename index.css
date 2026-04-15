@@ -130,3 +130,16 @@
 	color: #ffd7d7;
 }
 
+.k-revisions-drawer .k-revisions-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--spacing-2);
+	margin-block-start: var(--spacing-3);
+}
+
+.k-revisions-drawer .k-revisions-pagination-label {
+	font-size: var(--text-xs);
+	color: var(--color-gray-700);
+}
+
