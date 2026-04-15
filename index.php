@@ -228,7 +228,11 @@ Kirby::plugin('thomhines/kirby-revisions', [
 							);
 						}
 
-						$revisionId = RevisionsService::snapshotCurrent($page);
+						$revisionId = RevisionsService::snapshot($page);
+
+						if ($revisionId === null) {
+							$revisionId = RevisionsService::snapshotCurrent($page);
+						}
 
 						if ($revisionId === null) {
 							throw new InvalidArgumentException(
@@ -336,7 +340,11 @@ Kirby::plugin('thomhines/kirby-revisions', [
 							);
 						}
 
-						$revisionId = RevisionsService::snapshotCurrent($site);
+						$revisionId = RevisionsService::snapshot($site);
+
+						if ($revisionId === null) {
+							$revisionId = RevisionsService::snapshotCurrent($site);
+						}
 
 						if ($revisionId === null) {
 							throw new InvalidArgumentException(

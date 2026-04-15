@@ -100,6 +100,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 			data() {
 				return {
 					localRevisions: [],
+					hasHydratedRevisions: false,
 					savingRevision: false,
 					renamingRevision: false,
 					openRowMenuId: "",
@@ -139,11 +140,82 @@ window.panel.plugin("thomhines/kirby-revisions", {
 					deep: true,
 					immediate: true,
 					handler(val) {
+						// Only hydrate from drawer props once; after that, keep live local updates.
+						if (this.hasHydratedRevisions === true) {
+							return;
+						}
+
 						this.localRevisions = Array.isArray(val) ? [...val] : [];
+						this.hasHydratedRevisions = true;
 					},
 				},
 			},
 			methods: {
+				formatRevisionLabelFromTimestamp(timestampMs) {
+					try {
+						return new Intl.DateTimeFormat(undefined, {
+							month: "short",
+							day: "numeric",
+							year: "numeric",
+							hour: "numeric",
+							minute: "2-digit",
+						}).format(new Date(timestampMs));
+					} catch {
+						return "";
+					}
+				},
+				upsertLocalRevision(revisionId, name = "") {
+					if (typeof revisionId !== "string" || revisionId === "") {
+						return;
+					}
+
+					const timestampMs = Date.now();
+					const next = {
+						id: revisionId,
+						name: String(name ?? "").trim(),
+						label: this.formatRevisionLabelFromTimestamp(timestampMs),
+						mtime: Math.floor(timestampMs / 1000),
+					};
+					const index = this.localRevisions.findIndex(
+						(revision) => revision.id === revisionId,
+					);
+
+					if (index === -1) {
+						this.localRevisions = [next, ...this.localRevisions];
+						return;
+					}
+
+					const updated = [...this.localRevisions];
+					updated[index] = {
+						...updated[index],
+						...next,
+					};
+					this.localRevisions = updated;
+				},
+				async refreshRevisionsListUntilVisible(revisionId) {
+					if (typeof revisionId !== "string" || revisionId === "") {
+						await this.refreshRevisionsList();
+						return;
+					}
+
+					const delays = [0, 120, 300, 600];
+
+					for (const delay of delays) {
+						if (delay > 0) {
+							await new Promise((resolve) => setTimeout(resolve, delay));
+						}
+
+						await this.refreshRevisionsList();
+
+						const hasRevision = this.localRevisions.some(
+							(revision) => revision.id === revisionId,
+						);
+
+						if (hasRevision === true) {
+							return;
+						}
+					}
+				},
 				// Re-fetch from API after mutations so the drawer list stays in sync.
 				async refreshRevisionsList() {
 					if (typeof this.apiUrl !== "string" || this.apiUrl === "") {
@@ -154,6 +226,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 						const res = await fetch(this.apiUrl, {
 							method: "GET",
 							headers: { Accept: "application/json" },
+							cache: "no-store",
 							credentials: "same-origin",
 						});
 						const json = await res.json().catch(() => ({}));
@@ -197,6 +270,11 @@ window.panel.plugin("thomhines/kirby-revisions", {
 
 						if (json?.status === "ok") {
 							const revisionId = json?.revisionId ?? "";
+							const nextLabel = String(label ?? "").trim();
+
+							if (revisionId !== "") {
+								this.upsertLocalRevision(revisionId, nextLabel);
+							}
 
 							if (revisionId !== "") {
 								await this.renameRevision(revisionId, label);
@@ -206,7 +284,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 								panel.notification.success("Revision saved");
 							}
 
-							await this.refreshRevisionsList();
+							await this.refreshRevisionsListUntilVisible(revisionId);
 						}
 					} catch (err) {
 						const msg =
@@ -235,6 +313,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 					const panel = this.$panel;
 					const submitSave = async (values = {}) => {
 						await this.saveRevisionSnapshotWithLabel(values?.name ?? "");
+						await this.refreshRevisionsList();
 
 						if (typeof panel?.dialog?.close === "function") {
 							await panel.dialog.close();
