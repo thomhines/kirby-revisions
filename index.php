@@ -228,7 +228,7 @@ Kirby::plugin('thomhines/kirby-revisions', [
 							);
 						}
 
-						$revisionId = RevisionsService::snapshot($page);
+						$revisionId = RevisionsService::snapshotCurrent($page);
 
 						if ($revisionId === null) {
 							throw new InvalidArgumentException(
@@ -336,7 +336,7 @@ Kirby::plugin('thomhines/kirby-revisions', [
 							);
 						}
 
-						$revisionId = RevisionsService::snapshot($site);
+						$revisionId = RevisionsService::snapshotCurrent($site);
 
 						if ($revisionId === null) {
 							throw new InvalidArgumentException(
