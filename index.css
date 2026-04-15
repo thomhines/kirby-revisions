@@ -104,7 +104,9 @@
 	border: 0;
 	background: transparent;
 	color: inherit;
-	display: block;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
 	inline-size: 100%;
 	text-align: left;
 	padding: 0.4rem 0.6rem;
@@ -118,40 +120,13 @@
 	background: rgba(255, 255, 255, 0.12);
 }
 
+.k-revisions-drawer .k-revisions-row-menu-separator {
+	block-size: 1px;
+	margin: 0.2rem 0.35rem;
+	background: rgba(255, 255, 255, 0.2);
+}
+
 .k-revisions-drawer .k-revisions-row-menu-item-negative {
 	color: #ffd7d7;
 }
 
-.k-revisions-drawer .k-revisions-rename-modal-backdrop {
-	position: fixed;
-	inset: 0;
-	z-index: 999;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: var(--spacing-6);
-	background: rgba(0, 0, 0, 0.35);
-}
-
-.k-revisions-drawer .k-revisions-rename-modal {
-	inline-size: min(26rem, 100%);
-	padding: var(--spacing-4);
-	background: var(--color-white);
-	border-radius: var(--rounded);
-	box-shadow: var(--shadow);
-}
-
-.k-revisions-drawer .k-revisions-rename-modal-input {
-	inline-size: 100%;
-	block-size: var(--height-md);
-	padding-inline: var(--spacing-3);
-	border: 1px solid var(--color-gray-300);
-	border-radius: var(--rounded-sm);
-}
-
-.k-revisions-drawer .k-revisions-rename-modal-actions {
-	display: flex;
-	justify-content: flex-end;
-	gap: var(--spacing-2);
-	margin-block-start: var(--spacing-4);
-}

@@ -102,9 +102,6 @@ window.panel.plugin("thomhines/kirby-revisions", {
 					localRevisions: [],
 					savingRevision: false,
 					renamingRevision: false,
-					renameModalOpen: false,
-					renameTargetId: "",
-					renameValue: "",
 					openRowMenuId: "",
 					openRowMenuDirection: "down",
 				};
@@ -171,7 +168,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 						// list refresh is optional after save
 					}
 				},
-				async saveRevisionSnapshot() {
+				async saveRevisionSnapshotWithLabel(label = "") {
 					if (
 						this.savingRevision === true ||
 						typeof this.snapshotPath !== "string" ||
@@ -199,6 +196,12 @@ window.panel.plugin("thomhines/kirby-revisions", {
 						const json = await panel.api.post(this.snapshotPath, {});
 
 						if (json?.status === "ok") {
+							const revisionId = json?.revisionId ?? "";
+
+							if (revisionId !== "") {
+								await this.renameRevision(revisionId, label);
+							}
+
 							if (typeof panel?.notification?.success === "function") {
 								panel.notification.success("Revision saved");
 							}
@@ -219,6 +222,56 @@ window.panel.plugin("thomhines/kirby-revisions", {
 					} finally {
 						this.savingRevision = false;
 					}
+				},
+				async saveRevisionSnapshot() {
+					if (
+						this.savingRevision === true ||
+						typeof this.snapshotPath !== "string" ||
+						this.snapshotPath === ""
+					) {
+						return;
+					}
+
+					const panel = this.$panel;
+					const submitSave = async (values = {}) => {
+						await this.saveRevisionSnapshotWithLabel(values?.name ?? "");
+
+						if (typeof panel?.dialog?.close === "function") {
+							await panel.dialog.close();
+						}
+					};
+
+					if (typeof panel?.dialog?.open !== "function") {
+						const value = window.prompt("Add label", "");
+
+						if (value === null) {
+							return;
+						}
+
+						await submitSave({ name: value });
+						return;
+					}
+
+					await panel.dialog.open({
+						component: "k-form-dialog",
+						props: {
+							fields: {
+								name: {
+									label: "Label",
+									type: "text",
+									placeholder: "(optional)",
+									counter: false,
+								},
+							},
+							submitButton: "Save revision",
+							value: {
+								name: "",
+							},
+						},
+						on: {
+							submit: submitSave,
+						},
+					});
 				},
 				handleDocumentPointerDown(event) {
 					if (this.openRowMenuId === "") {
@@ -273,49 +326,71 @@ window.panel.plugin("thomhines/kirby-revisions", {
 
 					return spaceBelow < estimatedMenuHeight;
 				},
-				openRenameModal(revision, event) {
+				async openRenameDialog(revision, event) {
 					this.closeRowMenu(event);
-					this.renameTargetId = revision?.id ?? "";
-					this.renameValue = revision?.name ?? "";
-					this.renameModalOpen = true;
-				},
-				closeRenameModal() {
-					if (this.renamingRevision === true) {
-						return;
-					}
-
-					this.renameModalOpen = false;
-					this.renameTargetId = "";
-					this.renameValue = "";
-				},
-				async submitRenameRevision() {
-					if (
-						this.renamingRevision === true ||
-						typeof this.renameTargetId !== "string" ||
-						this.renameTargetId === ""
-					) {
-						return;
-					}
-
 					const panel = this.$panel;
+					const revisionId = revision?.id ?? "";
 
-					this.renamingRevision = true;
+					if (revisionId === "") {
+						return;
+					}
 
-					try {
-						await this.renameRevision(this.renameTargetId, this.renameValue);
-
-						if (typeof panel?.notification?.success === "function") {
-							panel.notification.success("Revision label saved");
+					const submitRename = async (values = {}) => {
+						if (this.renamingRevision === true) {
+							return;
 						}
 
-						this.renameModalOpen = false;
-						this.renameTargetId = "";
-						this.renameValue = "";
-					} catch {
-						// renameRevision already reported the error
-					} finally {
-						this.renamingRevision = false;
+						this.renamingRevision = true;
+
+						try {
+							await this.renameRevision(revisionId, values?.name ?? "");
+
+							if (typeof panel?.notification?.success === "function") {
+								panel.notification.success("Revision label saved");
+							}
+
+							if (typeof panel?.dialog?.close === "function") {
+								await panel.dialog.close();
+							}
+						} finally {
+							this.renamingRevision = false;
+						}
+					};
+
+					if (typeof panel?.dialog?.open !== "function") {
+						const value = window.prompt(
+							"Add label",
+							String(revision?.name ?? ""),
+						);
+
+						if (value === null) {
+							return;
+						}
+
+						await submitRename({ name: value });
+						return;
 					}
+
+					await panel.dialog.open({
+						component: "k-form-dialog",
+						props: {
+							fields: {
+								name: {
+									label: "Label",
+									type: "text",
+									placeholder: "(optional)",
+									counter: false,
+								},
+							},
+							submitButton: "Save",
+							value: {
+								name: String(revision?.name ?? ""),
+							},
+						},
+						on: {
+							submit: submitRename,
+						},
+					});
 				},
 				async confirmDeleteRevision(revision, event) {
 					this.closeRowMenu(event);
@@ -594,56 +669,21 @@ window.panel.plugin("thomhines/kirby-revisions", {
 										<button
 											type="button"
 											class="k-revisions-row-menu-item"
-											@click="openRenameModal(r, $event)"
+											@click="openRenameDialog(r, $event)"
 										>
+											<k-icon type="tag" />
 											Add Label
 										</button>
+										<div class="k-revisions-row-menu-separator"></div>
 										<button
 											type="button"
 											class="k-revisions-row-menu-item k-revisions-row-menu-item-negative"
 											@click="confirmDeleteRevision(r, $event)"
 										>
+											<k-icon type="trash" />
 											Delete
 										</button>
 									</div>
-								</div>
-							</div>
-						</div>
-						<div
-							v-if="renameModalOpen"
-							class="k-revisions-rename-modal-backdrop"
-							@click.self="closeRenameModal"
-						>
-							<div class="k-revisions-rename-modal">
-								<k-text class="k-mb-4">
-									<h6>Add label</h6>
-								</k-text>
-								<input
-									class="k-revisions-rename-modal-input"
-									v-model="renameValue"
-									type="text"
-									placeholder="Name this revision"
-									:disabled="renamingRevision"
-									@keydown.enter.prevent="submitRenameRevision"
-								>
-								<div class="k-revisions-rename-modal-actions">
-									<k-button
-										size="sm"
-										variant="text"
-										:disabled="renamingRevision"
-										@click="closeRenameModal"
-									>
-										Cancel
-									</k-button>
-									<k-button
-										size="sm"
-										variant="filled"
-										:loading="renamingRevision"
-										:disabled="renamingRevision"
-										@click="submitRenameRevision"
-									>
-										Save
-									</k-button>
 								</div>
 							</div>
 						</div>
