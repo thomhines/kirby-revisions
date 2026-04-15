@@ -4,13 +4,14 @@ namespace Thomhines\KirbyRevisions;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Kirby\Content\VersionId;
 use Kirby\Cms\App;
 use Kirby\Cms\ModelWithContent;
 use Kirby\Content\VersionCache;
-use Kirby\Content\VersionId;
 use Kirby\Exception\NotFoundException;
 use Kirby\Filesystem\Dir;
 use Kirby\Filesystem\F;
+use Kirby\Data\Data;
 use Kirby\Toolkit\Str;
 
 /**
@@ -334,6 +335,48 @@ class RevisionsService
 				JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
 			) ?: '{}'
 		);
+	}
+
+	/**
+	 * Read stored revision content for preview rendering.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function revisionContent(ModelWithContent $model, string $revisionId): array
+	{
+		if (static::isValidRevisionId($revisionId) !== true) {
+			throw new NotFoundException(message: 'Invalid revision id');
+		}
+
+		$dir = static::versionsPath($model) . '/' . $revisionId;
+
+		if (Dir::exists($dir) !== true) {
+			throw new NotFoundException(message: 'Revision not found');
+		}
+
+		$contentFilenames = static::contentFilenamesForVersion($model, VersionId::latest());
+
+		foreach (array_keys($contentFilenames) as $name) {
+			$file = $dir . '/' . $name;
+
+			if (is_file($file) === true) {
+				return Data::read($file);
+			}
+		}
+
+		foreach (Dir::read($dir) as $name) {
+			if (static::isContentFile($model, $name) !== true) {
+				continue;
+			}
+
+			$file = $dir . '/' . $name;
+
+			if (is_file($file) === true) {
+				return Data::read($file);
+			}
+		}
+
+		throw new NotFoundException(message: 'Revision content not found');
 	}
 
 	public static function isValidRevisionId(string $id): bool

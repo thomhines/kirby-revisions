@@ -195,6 +195,55 @@ Kirby::plugin('thomhines/kirby-revisions', [
 			return $result;
 		},
 	],
+	'routes' => [
+		[
+			'pattern' => 'revisions-preview/pages/(:all)/(:any)',
+			'method'  => 'GET',
+			'action'  => function (string $id, string $revisionId) {
+				$page = Find::page($id);
+
+				if ($page->permissions()->cannot('preview') === true) {
+					throw new PermissionException(
+						key: 'version.save.permission',
+					);
+				}
+
+				$content = RevisionsService::revisionContent($page, $revisionId);
+				$preview = $page->clone([
+					'content' => $content,
+				]);
+
+				return new Response(
+					body: $preview->render(),
+					type: 'text/html'
+				);
+			},
+		],
+		[
+			'pattern' => 'revisions-preview/site/(:any)',
+			'method'  => 'GET',
+			'action'  => function (string $revisionId) {
+				$kirby = App::instance();
+				$site = $kirby->site();
+
+				if ($site->permissions()->cannot('preview') === true) {
+					throw new PermissionException(
+						key: 'version.save.permission',
+					);
+				}
+
+				$content = RevisionsService::revisionContent($site, $revisionId);
+				$preview = $site->clone([
+					'content' => $content,
+				]);
+
+				return new Response(
+					body: $preview->render(),
+					type: 'text/html'
+				);
+			},
+		],
+	],
 	'api' => [
 		'routes' => function (App $kirby) {
 			return [
@@ -311,6 +360,24 @@ Kirby::plugin('thomhines/kirby-revisions', [
 					},
 				],
 				[
+					'pattern' => 'pages/(:any)/revisions/(:any)/preview',
+					'method'  => 'GET',
+					'action'  => function (string $id, string $revisionId) use ($kirby) {
+						$page = Find::page($id);
+
+						if ($page->permissions()->cannot('preview') === true) {
+							throw new PermissionException(
+								key: 'version.save.permission',
+							);
+						}
+
+						return [
+							'status' => 'ok',
+							'url' => $kirby->url('index') . '/revisions-preview/pages/' . $id . '/' . $revisionId,
+						];
+					},
+				],
+				[
 					'pattern' => 'site/revisions',
 					'method'  => 'GET',
 					'action'  => function () use ($kirby) {
@@ -325,6 +392,24 @@ Kirby::plugin('thomhines/kirby-revisions', [
 						return [
 							'status'    => 'ok',
 							'revisions' => RevisionsService::list($site),
+						];
+					},
+				],
+				[
+					'pattern' => 'site/revisions/(:any)/preview',
+					'method'  => 'GET',
+					'action'  => function (string $revisionId) use ($kirby) {
+						$site = $kirby->site();
+
+						if ($site->permissions()->cannot('preview') === true) {
+							throw new PermissionException(
+								key: 'version.save.permission',
+							);
+						}
+
+						return [
+							'status' => 'ok',
+							'url' => $kirby->url('index') . '/revisions-preview/site/' . $revisionId,
 						];
 					},
 				],
@@ -451,6 +536,7 @@ Kirby::plugin('thomhines/kirby-revisions', [
 								'title'        => 'Revisions',
 								'revisions'    => RevisionsService::list($page),
 								'apiUrl'       => $kirby->url('api') . '/pages/' . $id . '/revisions',
+								'previewUrlBase' => $kirby->url('index') . '/revisions-preview/pages/' . $id,
 								'snapshotPath' => 'pages/' . $id . '/revisions/snapshot',
 								'csrf'         => $kirby->auth()->csrfFromSession(),
 								'allowDelete'  => $kirby->option('thomhines.kirby-revisions.allowDelete', false) === true,
@@ -489,6 +575,7 @@ Kirby::plugin('thomhines/kirby-revisions', [
 								'title'        => 'Revisions',
 								'revisions'    => RevisionsService::list($site),
 								'apiUrl'       => $kirby->url('api') . '/site/revisions',
+								'previewUrlBase' => $kirby->url('index') . '/revisions-preview/site',
 								'snapshotPath' => 'site/revisions/snapshot',
 								'csrf'         => $kirby->auth()->csrfFromSession(),
 								'allowDelete'  => $kirby->option('thomhines.kirby-revisions.allowDelete', false) === true,

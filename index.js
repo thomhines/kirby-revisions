@@ -84,6 +84,10 @@ window.panel.plugin("thomhines/kirby-revisions", {
 					type: String,
 					default: "",
 				},
+				previewUrlBase: {
+					type: String,
+					default: "",
+				},
 				snapshotPath: {
 					type: String,
 					default: "",
@@ -342,7 +346,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 									counter: false,
 								},
 							},
-							submitButton: "Save revision",
+							submitButton: "Save Revision",
 							value: {
 								name: "",
 							},
@@ -470,6 +474,41 @@ window.panel.plugin("thomhines/kirby-revisions", {
 							submit: submitRename,
 						},
 					});
+				},
+				async previewRevision(revision, event) {
+					this.closeRowMenu(event);
+					const revisionId = revision?.id ?? "";
+
+					if (revisionId === "") {
+						return;
+					}
+
+					if (
+						typeof this.previewUrlBase !== "string" ||
+						this.previewUrlBase === ""
+					) {
+						if (window.panel?.notification?.error) {
+							window.panel.notification.error("Could not open revision preview");
+						}
+						return;
+					}
+
+					const url =
+						this.previewUrlBase + "/" + encodeURIComponent(revisionId);
+
+					try {
+						window.open(url, "_blank", "noopener");
+					} catch (err) {
+						const msg = String(
+							err?.message || "Could not open revision preview",
+						);
+
+						if (window.panel?.notification?.error) {
+							window.panel.notification.error(msg);
+						} else {
+							alert(msg);
+						}
+					}
 				},
 				async confirmDeleteRevision(revision, event) {
 					this.closeRowMenu(event);
@@ -673,7 +712,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 								class="k-mb-3"
 								theme="help"
 							>
-								<h6>Save revision</h6>
+								<h6>Save Revision</h6>
 								Saves a snapshot of your current draft. Published (live) content is not changed.
 							</k-text>
 							<br>
@@ -685,7 +724,7 @@ window.panel.plugin("thomhines/kirby-revisions", {
 								:loading="savingRevision"
 								@click="saveRevisionSnapshot"
 							>
-								Save revision
+								Save Revision
 							</k-button>
 						</div>
 						<br><br>
@@ -745,6 +784,14 @@ window.panel.plugin("thomhines/kirby-revisions", {
 											'k-revisions-row-menu-dropdown-up': openRowMenuDirection === 'up',
 										}"
 									>
+										<button
+											type="button"
+											class="k-revisions-row-menu-item"
+											@click="previewRevision(r, $event)"
+										>
+											<k-icon type="preview" />
+											Preview
+										</button>
 										<button
 											type="button"
 											class="k-revisions-row-menu-item"

@@ -1,6 +1,6 @@
 # Kirby Revisions
 
-Kirby Panel draft revision snapshots with load and retention controls.
+Preview, manage, and load previous versions of your pages from the Kirby panel.
 
 `kirby-revisions` adds a `Revisions` button in the Panel for pages and site settings. Editors can save snapshots, browse older ones, and load a previous snapshot back into the current draft without publishing it live.
 
