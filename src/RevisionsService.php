@@ -286,6 +286,19 @@ class RevisionsService
 	}
 
 	/**
+	 * Remove the model's entire `_versions` folder (all stored revisions).
+	 *
+	 * Kirby's own page delete only removes the content folder once it is
+	 * empty (see PageActions::delete()). Our `_versions` folder is unknown
+	 * to Kirby's storage handler, so it blocks that cleanup and is left
+	 * behind as an orphan unless we remove it ourselves first.
+	 */
+	public static function purge(ModelWithContent $model): void
+	{
+		Dir::remove(static::versionsPath($model));
+	}
+
+	/**
 	 * Remove a stored revision folder from `_versions`.
 	 */
 	public static function delete(ModelWithContent $model, string $revisionId): void

@@ -112,6 +112,17 @@ Kirby::plugin('thomhines/kirby-revisions', [
 		'system.loadPlugins:after' => function () {
 			thomhines_kirby_revisions_apply_view_buttons(App::instance());
 		},
+		// Kirby only removes a page's content folder once it's empty after
+		// deleting its own known version files. Our `_versions` snapshots
+		// folder is unknown to Kirby and would otherwise block that cleanup
+		// and survive as an orphaned directory on disk.
+		'page.delete:before' => function ($page) {
+			try {
+				RevisionsService::purge($page);
+			} catch (\Throwable $e) {
+				// never block the page delete because of this
+			}
+		},
 		'route:after' => function ($route, $path, $method, $result, $final) {
 			if ($final !== true) {
 				return $result;
