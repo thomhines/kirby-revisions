@@ -26,7 +26,6 @@ function thomhines_kirby_revisions_apply_view_buttons(App $kirby): void
 	$ref = new \ReflectionObject($kirby);
 
 	$optProp = $ref->getProperty('options');
-	$optProp->setAccessible(true);
 	$options = $optProp->getValue($kirby);
 
 	$panel = $options['panel'] ?? [];
@@ -95,7 +94,6 @@ function thomhines_kirby_revisions_apply_view_buttons(App $kirby): void
 
 	// Keep extensions.options in sync with the reflected runtime options.
 	$extProp = $ref->getProperty('extensions');
-	$extProp->setAccessible(true);
 	$extensions = $extProp->getValue($kirby);
 	$extensions['options'] = $options;
 	$extProp->setValue($kirby, $extensions);
